@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from ingest.pdf_loader import load_pdf
 from ingest.md_loader import load_markdown
 from ingest.web_loader import load_web
@@ -20,6 +22,13 @@ def ingest_file(file_path):
         raise ValueError("Unsupported file")
 
     chunks = split_documents(docs)
+
+    source_name = Path(file_path).name
+    for index, chunk in enumerate(chunks, start=1):
+        chunk.metadata = dict(chunk.metadata or {})
+        chunk.metadata.setdefault("source_file", source_name)
+        chunk.metadata["chunk_index"] = index
+        chunk.metadata["chunk_total"] = len(chunks)
 
     if settings.USE_LOCAL_RAG:
         save_chunks(chunks)

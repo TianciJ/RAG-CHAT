@@ -4,19 +4,39 @@ from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
 
 from app.config import settings
+from rag.prompt import get_prompt
 
 
 @lru_cache(maxsize=1)
 def get_llm():
     return ChatGroq(
         model=settings.LLM_MODEL,
-        api_key=settings.GROQ_API_KEY
+        api_key=settings.GROQ_API_KEY,
+        temperature=0,
     )
+
+
+def _build_local_answer(question: str, context: str) -> str:
+    cleaned_context = (context or "").strip()
+    if not cleaned_context:
+        return "上下文中没有找到相关信息。"
+
+    lines = []
+    for block in cleaned_context.split("\n\n"):
+        block = block.strip()
+        if block:
+            lines.append(block)
+
+    snippet = " ".join(lines)
+    if len(snippet) > 500:
+        snippet = snippet[:500] + "..."
+
+    return f"根据检索到的上下文，与你的问题“{question}”相关的信息如下：{snippet}"
 
 
 def generation_node(state):
     messages = state["messages"]
-    context = state["context"]
+    context = state.get("context", "")
     question = messages[-1].content
     history = "\n".join(
         f"{message.type}: {message.content}"
@@ -24,13 +44,7 @@ def generation_node(state):
     )
 
     if settings.USE_LOCAL_RAG:
-        if context.strip():
-            answer = (
-                "根据上传的上下文，给你一个简洁回答：\n\n"
-                f"{context}"
-            )
-        else:
-            answer = "我没有在上传的文档中找到相关信息。"
+        answer = _build_local_answer(question, context)
         return {
             "messages": [
                 AIMessage(content=answer)
@@ -38,26 +52,14 @@ def generation_node(state):
         }
 
     llm = get_llm()
+    prompt = get_prompt()
+    prompt_messages = prompt.format_messages(
+        history=history or "（暂无历史消息）",
+        context=context or "（暂无检索到的上下文）",
+        question=question,
+    )
 
-    prompt = f"""
-你是一个中文 RAG Chat 助手。
-你必须始终使用中文回答，禁止输出英文回答。
-请结合对话历史和检索到的上下文回答用户问题。
-如果用户在当前会话里追问之前的内容，请优先参考对话历史。
-如果上下文里没有答案，请明确说明“不确定”或者“上下文中没有相关信息”。
-不要编造，不要发挥。
-
-对话历史：
-{history or "（暂无历史消息）"}
-
-检索到的上下文：
-{context or "（暂无检索上下文）"}
-
-问题：
-{question}
-"""
-
-    response = llm.invoke(prompt)
+    response = llm.invoke(prompt_messages)
 
     return {
         "messages": [

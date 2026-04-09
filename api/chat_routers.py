@@ -41,6 +41,5 @@ def chat(payload: ChatRequest):
     return {
         "answer": response["messages"][-1].content,
         "session_id": payload.session_id,
-        "调试上下文": response.get("context", ""),
         "debug_context": response.get("context", "")
     }

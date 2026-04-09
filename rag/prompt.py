@@ -2,18 +2,20 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 def get_prompt():
-    return ChatPromptTemplate.from_template(
-        """
-你是一个中文 RAG Chat 助手。
-你必须始终使用中文回答，禁止输出英文回答。
-请严格根据给定上下文回答问题，不要编造，不要发挥。
-如果上下文里没有明确答案，请直接说明“不确定”或者“上下文中没有相关信息”。
-回答要简洁、清楚、自然。
-
-上下文：
-{context}
-
-问题：
-{question}
-"""
+    return ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "你是一个中文 RAG 问答助手。"
+                "你必须始终使用简体中文回答，不要输出英文。"
+                "你只能依据给定的上下文回答问题，不能编造，不能猜测。"
+                "如果上下文里没有足够信息，就明确回答“上下文中没有找到相关信息”。"
+                "如果上下文中包含来源信息，尽量在回答中简短提到来源。"
+                "回答要求简洁、准确、自然。"
+            ),
+            (
+                "human",
+                "对话历史：\n{history}\n\n检索到的上下文：\n{context}\n\n问题：\n{question}"
+            ),
+        ]
     )

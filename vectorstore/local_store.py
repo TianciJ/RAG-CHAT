@@ -8,6 +8,23 @@ from langchain_core.documents import Document
 STORE_PATH = Path("db/local_chunks.json")
 
 
+def _extract_terms(text):
+    normalized = (text or "").lower()
+    terms = set()
+
+    for token in re.findall(r"[a-z0-9_]+|[\u4e00-\u9fff]+", normalized):
+        if len(token) <= 2:
+            terms.add(token)
+            continue
+
+        terms.add(token)
+
+        if re.fullmatch(r"[\u4e00-\u9fff]+", token):
+            terms.update(token[i : i + 2] for i in range(len(token) - 1))
+
+    return terms
+
+
 def _load_raw_chunks():
     if not STORE_PATH.exists():
         return []
@@ -38,12 +55,12 @@ def retrieve_chunks(query, k=4):
     if not chunks:
         return []
 
-    tokens = set(re.findall(r"\w+", query.lower()))
+    tokens = _extract_terms(query)
     scored = []
 
     for chunk in chunks:
         text = chunk.get("page_content", "")
-        words = set(re.findall(r"\w+", text.lower()))
+        words = _extract_terms(text)
         score = len(tokens & words)
         scored.append((score, chunk))
 
