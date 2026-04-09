@@ -25,6 +25,6 @@ def health():
 if __name__ == "__main__":
     import uvicorn
 
-    # Direct script execution is kept simple and stable.
-    # Use `uvicorn app.main:app --reload` when you want hot reloading.
+    # 直接运行脚本时保持简单稳定。
+    # 如果需要热重载，建议使用 `uvicorn app.main:app --reload`。
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -15,16 +15,15 @@ def init_pinecone_index():
 
     index_name = settings.PINECONE_INDEX_NAME
 
-    # 如果 index 不存在就创建
+    # 如果索引不存在，就先创建索引。
     if index_name not in pc.list_indexes().names():
-
         pc.create_index(
             name=index_name,
-            dimension=384,  # MiniLM-L6-v2 = 384
+            dimension=384,  # MiniLM-L6-v2 的向量维度是 384
             metric="cosine",
             spec=ServerlessSpec(
                 cloud="aws",
-                region="us-east-1"  # 免费层级可用区域
+                region="us-east-1"  # 免费层可用区域
             )
         )
 

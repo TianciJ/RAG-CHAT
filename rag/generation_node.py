@@ -29,11 +29,11 @@ def generation_node(state):
     if settings.USE_LOCAL_RAG:
         if context.strip():
             answer = (
-                "Based on the uploaded context, here is a concise answer:\n\n"
+                "根据上传的上下文，给你一个简洁回答：\n\n"
                 f"{context}"
             )
         else:
-            answer = "I could not find relevant information in the uploaded documents."
+            answer = "我没有在上传的文档中找到相关信息。"
         return {
             "messages": [
                 AIMessage(content=answer)
@@ -43,16 +43,17 @@ def generation_node(state):
     llm = get_llm()
 
     prompt = f"""
-Use the conversation history and retrieved context to answer the user's question.
-Prefer the history if the user is asking to recall something from the current chat.
+你是一个中文 RAG Chat 助手。请结合对话历史和检索到的上下文回答用户问题。
+如果用户在当前会话里追问之前的内容，请优先参考对话历史。
+如果上下文里没有答案，请明确说明“不确定”或“上下文中没有相关信息”，不要编造。
 
-Conversation history:
-{history or "(no prior history)"}
+对话历史：
+{history or "（暂无历史消息）"}
 
-Retrieved context:
-{context or "(no retrieved context)"}
+检索到的上下文：
+{context or "（暂无检索上下文）"}
 
-Question:
+问题：
 {question}
 """
 

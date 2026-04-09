@@ -14,7 +14,7 @@ async def upload_file(file: UploadFile = File(...)):
     if suffix not in {".pdf", ".md"}:
         raise HTTPException(
             status_code=400,
-            detail="Only PDF and Markdown files are supported."
+            detail="只支持 PDF 和 Markdown 文件。"
         )
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
