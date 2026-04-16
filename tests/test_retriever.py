@@ -5,6 +5,7 @@ from rag.retrieval import (
     build_retrieval_query,
     format_documents,
     rerank_documents,
+    summarize_documents,
 )
 
 
@@ -25,25 +26,33 @@ def test_build_retrieval_query_includes_recent_history():
     assert "那具体怎么做的" in query
 
 
-def test_rerank_documents_prioritizes_more_relevant_chunk():
+def test_rerank_documents_combines_dense_and_keyword_scores():
     question = "这份文档有没有讲召回和重排"
-    docs = [
+    dense_docs = [
         Document(
-            page_content="这里在讲前端页面和按钮样式",
-            metadata={"source_file": "ui.md", "chunk_index": 3},
+            page_content="这里介绍向量召回和重排，先检索后 rerank，再把结果送入模型。",
+            metadata={"source_file": "rag.md", "chunk_index": 1},
+        )
+    ]
+    keyword_docs = [
+        Document(
+            page_content="这里在讲前端页面和按钮样式。",
+            metadata={"source_file": "ui.md", "chunk_index": 3, "_keyword_score": 1.0},
         ),
         Document(
-            page_content="这里介绍向量召回和重排，先检索后 rerank，再把结果送入模型",
-            metadata={"source_file": "rag.md", "chunk_index": 1},
+            page_content="这里介绍向量召回和重排，先检索后 rerank，再把结果送入模型。",
+            metadata={"source_file": "rag.md", "chunk_index": 1, "_keyword_score": 6.0},
         ),
     ]
 
-    ranked = rerank_documents(question, docs, top_k=2)
+    ranked = rerank_documents(question, dense_docs, keyword_docs, top_k=2)
+    summary = summarize_documents(ranked)
 
     assert ranked[0].metadata["source_file"] == "rag.md"
+    assert summary[0]["retrieval_score"] >= summary[1]["retrieval_score"]
 
 
-def test_format_documents_contains_source_metadata():
+def test_format_documents_contains_source_metadata_and_scores():
     docs = [
         Document(
             page_content="这是第一段内容",
@@ -51,6 +60,7 @@ def test_format_documents_contains_source_metadata():
                 "source_file": "list.pdf",
                 "page": 2,
                 "chunk_index": 1,
+                "_retrieval_score": 0.92,
             },
         )
     ]
@@ -60,4 +70,4 @@ def test_format_documents_contains_source_metadata():
     assert "list.pdf" in context
     assert "页码: 2" in context
     assert "段号: 1" in context
-    assert "这是第一段内容" in context
+    assert "综合分数: 0.92" in context

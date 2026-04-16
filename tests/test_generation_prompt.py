@@ -26,8 +26,9 @@ def test_generation_prompt_includes_history_and_context(monkeypatch):
     }
 
     result = generation_node.generation_node(state)
+    prompt_text = str(fake_llm.last_prompt)
 
     assert result["messages"][0].content == "模拟回答"
-    assert "我叫小明" in fake_llm.last_prompt
-    assert "list.pdf 里写着用户的名字是小明。" in fake_llm.last_prompt
-    assert "我的名字是什么？" in fake_llm.last_prompt
+    assert "我叫小明" in prompt_text
+    assert "list.pdf 里写着用户的名字是小明。" in prompt_text
+    assert "我的名字是什么？" in prompt_text

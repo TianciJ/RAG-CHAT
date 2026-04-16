@@ -14,16 +14,22 @@ def test_local_store_persists_across_reload(monkeypatch):
     monkeypatch.setattr(local_store, "STORE_PATH", store_path)
 
     docs = [
-        Document(page_content="list.pdf 包含链接和摘要。"),
-        Document(page_content="FastAPI 提供了 chat 和 upload 接口。"),
+        Document(
+            page_content="list.pdf 包含链接和摘要。",
+            metadata={"source_file": "list.pdf", "chunk_index": 1},
+        ),
+        Document(
+            page_content="FastAPI 提供了 chat 和 upload 接口。",
+            metadata={"source_file": "api.md", "chunk_index": 1},
+        ),
     ]
 
-    local_store.save_chunks(docs)
+    local_store.save_chunks(docs, replace_source="list.pdf")
+    local_store.save_chunks([docs[1]], replace_source="api.md")
     first_pass = local_store.retrieve_chunks("list.pdf 里有什么内容？", k=2)
 
     reloaded = importlib.reload(local_store)
     monkeypatch.setattr(reloaded, "STORE_PATH", store_path)
-
     second_pass = reloaded.retrieve_chunks("list.pdf 里有什么内容？", k=2)
 
     assert first_pass
