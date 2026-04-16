@@ -2,8 +2,10 @@ from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, HumanMessage
 
 from rag.retrieval import (
+    build_catalog_documents,
     build_retrieval_query,
     format_documents,
+    is_catalog_question,
     rerank_documents,
     summarize_documents,
 )
@@ -24,6 +26,22 @@ def test_build_retrieval_query_includes_recent_history():
     assert "这份文件主要讲什么" in query
     assert "里面提到了召回吗" in query
     assert "那具体怎么做的" in query
+
+
+def test_catalog_question_detection_and_catalog_document():
+    assert is_catalog_question("你知道你的RAG知识库里有哪些文章吗")
+
+    docs = build_catalog_documents(
+        [
+            {"filename": "a.pdf", "chunks": 3, "updated_at": "2026-04-16 10:00:00"},
+            {"filename": "b.md", "chunks": 2, "updated_at": "2026-04-16 11:00:00"},
+        ]
+    )
+
+    assert docs
+    assert "当前知识库共收录 2 个文件" in docs[0].page_content
+    assert "a.pdf" in docs[0].page_content
+    assert docs[0].metadata["_catalog_doc"] is True
 
 
 def test_rerank_documents_combines_dense_and_keyword_scores():

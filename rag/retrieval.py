@@ -1,7 +1,7 @@
 """
 文件名：rag/retrieval.py
 最后修改时间：2026-04-16
-模块功能：提供检索 query 改写、混合检索重排和上下文格式化能力。
+模块功能：提供检索 query 改写、混合检索重排、知识库目录摘要和上下文格式化能力。
 模块相关技术：文本特征匹配、混合检索、轻量 rerank、LangChain 文档对象。
 """
 
@@ -13,6 +13,20 @@ from collections.abc import Sequence
 
 from langchain_core.documents import Document
 from langchain_core.messages import BaseMessage
+
+
+CATALOG_KEYWORDS = {
+    "知识库",
+    "文档",
+    "文章",
+    "资料",
+    "目录",
+    "文件",
+    "有哪些",
+    "多少",
+    "包含",
+    "收录",
+}
 
 
 def build_retriever(vectorstore, *, search_type: str = "mmr", k: int = 8, fetch_k: int = 24):
@@ -63,6 +77,35 @@ def _extract_terms(text: str) -> set[str]:
     return terms
 
 
+def is_catalog_question(question: str) -> bool:
+    terms = _extract_terms(question)
+    return len(terms & CATALOG_KEYWORDS) >= 2 or ("知识库" in question and "哪些" in question)
+
+
+def build_catalog_documents(registry_documents: Sequence[dict]) -> list[Document]:
+    if not registry_documents:
+        return []
+
+    lines = [f"当前知识库共收录 {len(registry_documents)} 个文件："]
+    for index, document in enumerate(registry_documents, start=1):
+        filename = document.get("filename", "未知文件")
+        chunks = document.get("chunks", 0)
+        updated_at = document.get("updated_at", "未知时间")
+        lines.append(f"{index}. {filename}，共 {chunks} 个片段，最近更新时间：{updated_at}")
+
+    return [
+        Document(
+            page_content="\n".join(lines),
+            metadata={
+                "source_file": "知识库目录",
+                "chunk_index": 0,
+                "_keyword_score": 100.0,
+                "_catalog_doc": True,
+            },
+        )
+    ]
+
+
 def _document_key(doc: Document) -> str:
     metadata = dict(doc.metadata or {})
     source_file = metadata.get("source_file") or metadata.get("source") or "unknown"
@@ -89,6 +132,9 @@ def score_document(question: str, doc: Document) -> float:
     source_file = str(metadata.get("source_file") or metadata.get("source") or "")
     if source_file:
         score += 0.5 * len(question_terms & _extract_terms(source_file))
+
+    if metadata.get("_catalog_doc"):
+        score += 20.0
 
     return score
 

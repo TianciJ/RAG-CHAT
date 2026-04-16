@@ -1,15 +1,18 @@
 """
 文件名：rag/retriever_node.py
 最后修改时间：2026-04-16
-模块功能：执行检索节点逻辑，完成查询改写、混合检索、重排和上下文组织。
+模块功能：执行检索节点逻辑，完成查询改写、混合检索、知识库目录补充、重排和上下文组织。
 模块相关技术：LangGraph 节点、Pinecone、混合检索、关键词检索、rerank。
 """
 
 from app.config import settings
+from ingest.document_registry import list_documents
 from rag.retrieval import (
+    build_catalog_documents,
     build_retrieval_query,
     build_retriever,
     format_documents,
+    is_catalog_question,
     rerank_documents,
     summarize_documents,
 )
@@ -39,6 +42,9 @@ def retrieve_node(state):
                 retrieval_query,
                 k=settings.VECTOR_TOP_K,
             )
+
+    if is_catalog_question(question):
+        keyword_docs = list(keyword_docs) + build_catalog_documents(list_documents())
 
     ranked_docs = rerank_documents(
         question=question,
