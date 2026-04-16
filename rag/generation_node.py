@@ -2,13 +2,14 @@
 文件名：rag/generation_node.py
 最后修改时间：2026-04-16
 模块功能：执行生成节点逻辑，将历史消息与检索上下文交给模型生成最终回答。
-模块相关技术：ChatGroq、LangChain 消息、Prompt Template、中文回答约束。
+模块相关技术：ChatOpenAI、ChatGroq、LangChain 消息、Prompt Template、中文回答约束。
 """
 
 from functools import lru_cache
 
 from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 
 from app.config import settings
 from rag.prompt import get_prompt
@@ -16,8 +17,20 @@ from rag.prompt import get_prompt
 
 @lru_cache(maxsize=1)
 def get_llm():
+    model_name = settings.resolve_llm_model()
+
+    if settings.LLM_PROVIDER == "openai":
+        kwargs = {
+            "model": model_name,
+            "api_key": settings.OPENAI_API_KEY,
+            "temperature": 0,
+        }
+        if settings.OPENAI_BASE_URL:
+            kwargs["base_url"] = settings.OPENAI_BASE_URL
+        return ChatOpenAI(**kwargs)
+
     return ChatGroq(
-        model=settings.LLM_MODEL,
+        model=model_name,
         api_key=settings.GROQ_API_KEY,
         temperature=0,
     )
