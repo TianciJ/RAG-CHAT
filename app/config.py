@@ -102,11 +102,12 @@ class Settings:
             return
 
         missing = []
+        PLACEHOLDER_KEY = {"your_groq_api_key","your_pinecone_api_key"}
         if self.LLM_PROVIDER == "openai" and not self.OPENAI_API_KEY:
             missing.append("OPENAI_API_KEY")
-        if self.LLM_PROVIDER == "groq" and not self.GROQ_API_KEY:
+        if self.LLM_PROVIDER == "groq" and (not self.GROQ_API_KEY or self.GROQ_API_KEY in PLACEHOLDER_KEY):
             missing.append("GROQ_API_KEY")
-        if not self.PINECONE_API_KEY:
+        if not self.PINECONE_API_KEY or self.PINECONE_API_KEY in PLACEHOLDER_KEY:
             missing.append("PINECONE_API_KEY")
 
         if missing:

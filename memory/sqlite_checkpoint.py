@@ -7,7 +7,16 @@
 
 import sqlite3
 
-from langgraph.checkpoint.sqlite import SqliteSaver
+try:
+    from langgraph.checkpoint.sqlite import SqliteSaver
+    use_sqlite = True
+except ImportError:
+    try:
+        from langgraph.checkpoints.sqlite import SqliteSaver
+        use_sqlite = True
+    except ImportError:
+        from langgraph.checkpoint.memory import MemorySaver
+        use_sqlite = False
 
 from app.config import settings
 
@@ -16,6 +25,8 @@ DB_PATH = settings.CHECKPOINT_DB_PATH
 
 
 def build_checkpointer():
+    if not use_sqlite:
+        return MemorySaver()
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     return SqliteSaver(conn)
